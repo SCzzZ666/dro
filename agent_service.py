@@ -577,8 +577,30 @@ class AgentService:
   - *若在搜索页* -> 输入关键词 -> 搜索。
   - *若在结果页* -> 寻找与京东**同规格**的商品 -> 记录价格。
 
-- **阶段三：结论**
+- **阶段三：结论 (必须输出 JSON)**
   - 对比数据 -> 输出最终比价结果。
+  - **最后一步必须 strictly 输出以下 JSON 格式 (不要包含 Markdown 代码块标记)**：
+    {
+        "products": [
+            {
+                "name": "商品标题",
+                "price": 100.0,
+                "platform": "京东/淘宝",
+                "score": 95,
+                "is_winner": true,
+                "reason": "价格最低且销量高"
+            },
+            {
+                "name": "竞品标题",
+                "price": 120.0,
+                "platform": "京东/淘宝",
+                "score": 80,
+                "is_winner": false,
+                "reason": "价格较高"
+            }
+        ],
+        "recommendation": "最终购买建议..."
+    }
 
 **记住：稳比快更重要。如果卡住了，就停下来思考补救措施。**
 """
