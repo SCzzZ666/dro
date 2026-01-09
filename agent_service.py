@@ -177,6 +177,10 @@ class AgentService:
         根据用户选择配置 LLM
         """
         api_key = os.getenv("DASHSCOPE_API_KEY")
+        # Sanitize API key to remove potential quotes (smart or standard)
+        if api_key:
+             api_key = api_key.strip().strip("'\"“”")
+        
         model_selection = model_selection.lower()
         
         provider = "OpenAILike"
