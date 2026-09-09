@@ -1,0 +1,11 @@
+# Ignore runtime artifacts
+v2/data/
+trajectories/
+uploads/
+__pycache__/
+*.pyc
+*.sqlite
+*.db
+*.db-wal
+*.db-shm
+.env

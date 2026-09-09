@@ -8,6 +8,7 @@ from urllib.parse import quote
 from dotenv import load_dotenv
 
 # DroidRun imports
+DROIDRUN_AVAILABLE = True
 try:
     from droidrun.agent.droid import DroidAgent
     from droidrun.agent.utils.llm_picker import load_llm
@@ -23,9 +24,51 @@ try:
     # Monkeypatch ManagerAgent._validate_and_retry to fix the infinite loop issue
     from droidrun.agent.manager.manager_agent import ManagerAgent
 except ImportError as e:
-    print(f"Failed to import droidrun: {e}")
-    # Define mocks or exit if critical
-    raise
+    DROIDRUN_AVAILABLE = False
+    print(f"DroidRun 未安装，当前将以演示模式启动: {e}")
+
+    class _MockResult:
+        def __init__(self, success: bool, reason: str):
+            self.success = success
+            self.reason = reason
+
+    class DroidAgent:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def run(self):
+            return _MockResult(False, "DroidRun not installed")
+
+    def load_llm(*args, **kwargs):
+        return None
+
+    class DroidrunConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class AgentConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class CodeActConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class ManagerConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class ExecutorConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class TracingConfig:
+        def __init__(self, *args, **kwargs):
+            pass
+
+    class DeviceConfig:
+        def __init__(self, *args, **kwargs):
+            pass
 
 
 

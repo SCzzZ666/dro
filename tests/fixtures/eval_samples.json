@@ -1,0 +1,90 @@
+[
+  {
+    "id": "eval_001",
+    "scene": "比价含预算",
+    "user_input": "帮我比价蓝牙耳机，预算200以内",
+    "task_type": "比价",
+    "expect": {
+      "intent": "price_compare",
+      "budget_max": 200.0,
+      "search_term": "蓝牙耳机"
+    }
+  },
+  {
+    "id": "eval_002",
+    "scene": "比价无预算",
+    "user_input": "京东和淘宝哪个便宜？帮我看看这款耳机价格",
+    "task_type": "比价",
+    "expect": {
+      "intent": "price_compare",
+      "budget_max": null,
+      "search_term": "耳机"
+    }
+  },
+  {
+    "id": "eval_003",
+    "scene": "找相似（带图由系统强制）",
+    "user_input": "帮我找这个杯子的同款",
+    "task_type": "找相似",
+    "expect": {
+      "intent": "find_similar",
+      "budget_max": null,
+      "search_term": "杯子"
+    }
+  },
+  {
+    "id": "eval_004",
+    "scene": "推荐带预算上限",
+    "user_input": "不超过300块推荐一个降噪耳机",
+    "task_type": "最优方案",
+    "expect": {
+      "intent": "recommend",
+      "budget_max": 300.0,
+      "search_term": "降噪耳机"
+    }
+  },
+  {
+    "id": "eval_005",
+    "scene": "启发式意图（无 LLM 保底）",
+    "user_input": "哪个更便宜，对比一下价格",
+    "task_type": "",
+    "expect": {
+      "intent": "price_compare",
+      "budget_max": null
+    }
+  },
+  {
+    "id": "eval_006",
+    "scene": "预算约束-标注而非剔除",
+    "collected": [
+      {"title": "WASSUP KO联名蓝牙耳机", "price": 109.0, "platform": "天猫"},
+      {"title": "同款达期蓝牙耳机", "price": 264.0, "platform": "京东"},
+      {"title": "海真旗舰店商品", "price": 0.0, "platform": "天猫"}
+    ],
+    "budget_max": 200.0,
+    "expect": {
+      "kept_names": ["WASSUP KO联名蓝牙耳机", "同款达期蓝牙耳机", "海真旗舰店商品"],
+      "annotations": {
+        "同款达期蓝牙耳机": "超出预算",
+        "海真旗舰店商品": "价格显示异常"
+      },
+      "winner_name": "WASSUP KO联名蓝牙耳机"
+    }
+  },
+  {
+    "id": "eval_007",
+    "scene": "ReAct finish 计划允许伪步骤",
+    "plan_step": {"name": "finish", "args": {}},
+    "expect": {
+      "ends_early": true
+    }
+  },
+  {
+    "id": "eval_008",
+    "scene": "UI 元素定位-搜索框",
+    "xml_fragment": "<node text=\"\" content-desc=\"\" resource-id=\"com.taobao.taobao:id/searchEditText\" class=\"android.widget.EditText\" hint=\"搜索商品\" clickable=\"false\" bounds=\"[90,130][990,240]\"/>",
+    "expect": {
+      "find_edit_box": true
+    }
+  }
+]
