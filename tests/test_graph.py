@@ -10,7 +10,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from v2.graph import build_graph
+from dro.core.graph import build_graph
 
 
 class FakeLLM:
@@ -54,13 +54,13 @@ def _patch_fast_adb(online=False):
 
     fake = FakeAdb(online=online)
     patchers = [
-        patch("v2.tools.open_app.adb", fake),
-        patch("v2.tools.search_product.adb", fake),
-        patch("v2.tools.click_product.adb", fake),
-        patch("v2.tools.extract_info.adb", fake),
-        patch("v2.tools.go_back.adb", fake),
-        patch("v2.tools.screenshot.adb", fake),
-        patch("v2.tools.close_popup.adb", fake),
+        patch("dro.tools.open_app.adb", fake),
+        patch("dro.tools.search_product.adb", fake),
+        patch("dro.tools.click_product.adb", fake),
+        patch("dro.tools.extract_info.adb", fake),
+        patch("dro.tools.go_back.adb", fake),
+        patch("dro.tools.screenshot.adb", fake),
+        patch("dro.tools.close_popup.adb", fake),
     ]
     for p in patchers:
         p.start()
@@ -82,7 +82,7 @@ class GraphFlowTest(unittest.TestCase):
     def test_chat_intent_skips_tools(self):
         """chat 意图应直达 result_node，不执行任何工具。"""
         graph = build_graph(checkpointer=None)
-        with patch("v2.graph._get_runtime_llm", return_value=FakeLLM(intent="chat")):
+        with patch("dro.core.graph._get_runtime_llm", return_value=FakeLLM(intent="chat")):
             out = _run(graph, "你好呀")
         self.assertEqual(out.get("intent"), "chat")
         self.assertEqual(out.get("status"), "done")
@@ -97,7 +97,7 @@ class GraphFlowTest(unittest.TestCase):
             {"name": "open_app", "args": {"app_name": "京东"}},
             {"name": "search_product", "args": {"keyword": "蓝牙耳机"}},
         ]
-        with patch("v2.graph._get_runtime_llm", return_value=FakeLLM(intent="price_compare", plan=plan)):
+        with patch("dro.core.graph._get_runtime_llm", return_value=FakeLLM(intent="price_compare", plan=plan)):
             out = _run(graph, "京东淘宝哪个便宜")
         self.assertEqual(out.get("intent"), "price_compare")
         self.assertEqual(out.get("status"), "done")
@@ -108,7 +108,7 @@ class GraphFlowTest(unittest.TestCase):
     def test_heuristic_fallback_without_llm(self):
         """无 API Key 时：启发式意图 + 默认计划仍能走通。"""
         graph = build_graph(checkpointer=None)
-        with patch("v2.graph._get_runtime_llm", return_value=None):
+        with patch("dro.core.graph._get_runtime_llm", return_value=None):
             out = _run(graph, "帮我比价耳机")
         self.assertEqual(out.get("intent"), "price_compare")
         self.assertEqual(out.get("status"), "done")
@@ -116,11 +116,11 @@ class GraphFlowTest(unittest.TestCase):
 
     def test_max_steps_limit(self):
         """超过最大步数强制结束（构造超长计划）。"""
-        from v2.config import settings
+        from dro.core.config import settings
 
         graph = build_graph(checkpointer=None)
         plan = [{"name": "go_back", "args": {}}] * (settings.max_steps + 10)
-        with patch("v2.graph._get_runtime_llm", return_value=FakeLLM(intent="recommend", plan=plan)):
+        with patch("dro.core.graph._get_runtime_llm", return_value=FakeLLM(intent="recommend", plan=plan)):
             out = _run(graph, "推荐一个耳机")
         self.assertLessEqual(len(out.get("tool_log") or []), settings.max_steps)
         self.assertEqual(out.get("status"), "done")
@@ -131,11 +131,11 @@ class CheckpointTest(unittest.TestCase):
         """SqliteSaver checkpoint：执行后能通过 get_state 读到状态。"""
         patchers = _patch_fast_adb(online=False)
         try:
-            from v2.graph import TaskRunner
+            from dro.core.graph import TaskRunner
 
             runner = TaskRunner()
             thread = f"ckpt_test_{uuid.uuid4().hex[:8]}"
-            with patch("v2.graph._get_runtime_llm", return_value=None):
+            with patch("dro.core.graph._get_runtime_llm", return_value=None):
                 runner.invoke("比价耳机", task_type="比价", thread_id=thread)
             state = runner.get_state(thread)
             self.assertIsNotNone(state)

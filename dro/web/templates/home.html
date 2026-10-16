@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dro v2 · 任务编排中心</title>
+  <link rel="stylesheet" href="/static/base.css" />
+  <link rel="stylesheet" href="/static/home.css" />
+  <script>
+    document.documentElement.dataset.theme = localStorage.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function toggleTheme() {
+      const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+      localStorage.theme = t;
+    }
+  </script>
+</head>
+<body>
+  <div class="shell">
+
+    <!-- 顶部 -->
+    <header class="hero card">
+      <div class="brand">
+        <div class="logo">Dro</div>
+        <div>
+          <h1>购物任务编排中心</h1>
+          <p>LangGraph + 工具化 ADB 执行引擎 · 比价 / 找相似 / 最优方案</p>
+        </div>
+      </div>
+      <div class="status-area">
+        <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌓</button>
+        <span class="status-dot" id="healthDot"></span>
+        <span class="status-text" id="healthText">检测中…</span>
+      </div>
+    </header>
+
+    <!-- 三栏主体 -->
+    <main class="layout">
+
+      <!-- 左栏：创建任务 + 历史 -->
+      <div class="col">
+        <section class="card">
+          <div class="panel-head"><h2>创建任务</h2><span class="hint">描述任务需求</span></div>
+          <div class="panel-body">
+            <div class="field">
+              <label for="userInput">任务需求</label>
+              <textarea id="userInput" placeholder="例如：帮我比价蓝牙耳机，预算 200 以内"></textarea>
+            </div>
+
+            <div class="field">
+              <label for="taskType">任务类型</label>
+              <select id="taskType">
+                <option value="">自动识别</option>
+                <option value="比价">比价</option>
+                <option value="找相似">找相似</option>
+                <option value="最优方案">最优方案</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>参考图片（可选，找相似时上传）</label>
+              <div class="upload-zone" id="uploadZone">
+                <input type="file" id="fileInput" accept="image/*" />
+                <div class="up-ico">🖼️</div>
+                <div id="uploadText">点击或拖拽上传图片</div>
+                <div class="up-tip">支持 JPG / PNG / WebP</div>
+              </div>
+              <div class="upload-preview" id="uploadPreview">
+                <img id="previewImg" alt="预览" />
+                <button class="clear" id="clearImg" title="移除图片">✕</button>
+              </div>
+            </div>
+
+            <div class="actions">
+              <button class="btn-primary" id="createBtn">创建任务</button>
+              <button class="btn-ghost" id="refreshBtn" title="刷新当前任务">刷新</button>
+              <button class="btn-danger" id="stopBtn" title="停止当前任务">停止</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head"><h2>任务历史</h2><span class="hint" id="historyCount">0 条</span></div>
+          <div class="history-list" id="historyList">
+            <div class="empty">暂无任务记录</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 中栏：统计 + 详情 + 执行状态 -->
+      <div class="col">
+        <section class="stats">
+          <div class="stat card">
+            <div class="stat-ico" style="background:var(--primary-weak);color:var(--primary);">📋</div>
+            <div><div class="k">任务总数</div><div class="v" id="statTotal">0</div></div>
+          </div>
+          <div class="stat card">
+            <div class="stat-ico" style="background:var(--warn-weak);color:var(--warn);">⏳</div>
+            <div><div class="k">执行中</div><div class="v" id="statRunning">0</div></div>
+          </div>
+          <div class="stat card">
+            <div class="stat-ico" style="background:var(--success-weak);color:var(--success);">✅</div>
+            <div><div class="k">已完成</div><div class="v" id="statDone">0</div></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head"><h2>任务详情</h2><span class="hint" id="detailThread">—</span></div>
+          <div class="panel-body">
+            <div class="status-bar neutral" id="statusBar">
+              <span id="statusText">等待创建任务</span>
+            </div>
+            <div class="meta-grid">
+              <div class="meta-item"><div class="k">任务类型</div><div class="v" id="metaType">—</div></div>
+              <div class="meta-item"><div class="k">执行步数</div><div class="v" id="metaStep">0</div></div>
+              <div class="meta-item"><div class="k">商品数</div><div class="v" id="metaProducts">0</div></div>
+              <div class="meta-item"><div class="k">更新时间</div><div class="v" id="metaTime">—</div></div>
+            </div>
+            <div class="log" id="taskLog">暂无执行日志…</div>
+          </div>
+        </section>
+      </div>
+
+      <!-- 右栏：结果 + 工具 -->
+      <div class="col right">
+        <section class="card">
+          <div class="panel-head">
+            <h2>结果消息</h2>
+            <div style="display:flex;gap:6px;align-items:center;">
+              <span class="hint" id="resultStatus">—</span>
+              <button class="btn-ghost" id="exportJsonBtn" style="padding:6px 10px;font-size:12px;">JSON</button>
+              <button class="btn-ghost" id="exportCsvBtn" style="padding:6px 10px;font-size:12px;">CSV</button>
+            </div>
+          </div>
+          <div class="panel-body">
+            <div id="resultSummary"><div class="empty">暂无结果</div></div>
+            <div id="resultGrid"></div>
+          </div>
+        </section>
+
+        <section class="card">
+          <div class="panel-head"><h2>已注册工具</h2><span class="hint" id="toolCount">0 个</span></div>
+          <div class="tool-list" id="toolList">
+            <div class="empty">加载中…</div>
+          </div>
+        </section>
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div>Dro v2 · 服务端口 8001 · <code>/v2/tasks</code></div>
+      <div><a href="/chat">切换客服助手 /chat</a> · <a href="/docs" target="_blank" rel="noreferrer">打开接口文档 /docs</a></div>
+    </footer>
+  </div>
+
+  <script src="/static/home.js" defer></script>
+</body>
+</html>

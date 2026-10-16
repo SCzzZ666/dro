@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from v2.memory import MemoryManager, SqliteStore
+from dro.core.memory import MemoryManager, SqliteStore
 
 
 class MemoryTest(unittest.TestCase):
@@ -62,7 +62,7 @@ class MemoryTest(unittest.TestCase):
         self.assertIn("200", ctx)
 
     def test_extract_preferences_regex_fallback(self):
-        from v2.memory import _regex_preferences
+        from dro.core.memory import _regex_preferences
 
         out = _regex_preferences("预算200以内，红色")
         self.assertEqual(out["budget"], "预算200元以内")

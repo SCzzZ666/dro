@@ -2,9 +2,8 @@
 
 Dro（Droidrun E-commerce AI Agent）是一个面向 Android 设备（真机 / 模拟器）的购物助手，能自动在淘宝、京东等 App 内完成**比价、找相似、按预算推荐**三类任务。
 
-当前项目已切换到 **`v2/` 独立重构流程**：LangGraph 做任务编排，原子 ADB 工具做手机操作，SQLite 做默认记忆与 checkpoint。
+当前项目已按照工程化规范重构为分层架构，用 LangGraph 做任务编排，原子 ADB 工具做手机操作，SQLite 做默认记忆与 checkpoint。
 
-> 旧版 `app.py` / `agent_service.py` 仍保留，但已标记为 deprecated，仅作历史参考，不作为当前推荐流程。
 
 ---
 
@@ -13,7 +12,7 @@ Dro（Droidrun E-commerce AI Agent）是一个面向 Android 设备（真机 / �
 ```bash
 pip install -r requirements.txt
 cp .env.example .env        # 填 DASHSCOPE_API_KEY / DEVICE_SERIAL
-python -m v2                # http://localhost:8001
+python -m dro                # http://localhost:8001
 ```
 
 启动后可用页面：
@@ -71,50 +70,48 @@ flowchart LR
 
 ```text
 dro/
-├── app.py                      # 旧版入口（deprecated）
-├── agent_service.py            # 旧版核心服务（deprecated）
-├── templates/index.html        # 旧版 Web UI
-├── v2/                         # 当前推荐流程
-│   ├── __main__.py             # python -m v2（--host / --port 可覆盖）
-│   ├── api.py                  # FastAPI 接口（含 / 与 /chat 内嵌 Web UI）
-│   ├── graph.py                # LangGraph 状态图 + TaskRunner
-│   ├── config.py               # 配置加载（环境变量 > .env > 默认值）
-│   ├── llm.py                  # DashScope 兼容接口封装（同步/异步）
-│   ├── memory.py               # 四层记忆
-│   ├── prompts.py              # 提示词模板
-│   ├── schemas.py              # ToolResult / Product / 意图 / State 契约
-│   ├── budget.py               # 预算上限解析
-│   ├── adb_client.py           # ADB 原子操作封装
-│   ├── vision.py               # 视觉服务（Qwen-VL 商品提取 / 弹窗检测）
-│   ├── ui.py                   # uiautomator XML 元素解析
-│   ├── data/                   # [自动生成] checkpoints.db / memory.db
-│   └── tools/                  # 原子工具
-│       ├── base.py             # register_tool 装饰器 + execute_tool 调度（超时/异常兜底）
-│       ├── open_app.py         # open_app
-│       ├── search_product.py   # search_product
-│       ├── click_product.py    # click_product
-│       ├── extract_info.py     # extract_info
-│       ├── go_back.py          # go_back
-│       ├── screenshot.py       # screenshot
-│       ├── close_popup.py      # close_popup
-│       ├── gesture.py          # swipe_up / swipe_down / swipe_left / swipe_right
-│       └── clipboard.py        # paste_text
-├── tests/                      # 单测 / 回归 / 评估用例
-│   ├── test_graph.py
-│   ├── test_memory.py
-│   ├── test_tools.py
-│   ├── test_v2_regression.py
-│   ├── eval_cases.py
-│   └── fixtures/eval_samples.json
-├── docs/                       # architecture / evaluation / interview-cheatsheet
-├── .env.example                # 环境变量样例
+├── pyproject.toml               # 项目元数据 + ruff / pytest 配置
+├── README.md
+├── requirements.txt
+├── .env.example
 ├── .gitignore
-└── requirements.txt            # 依赖
+├── dro/                         # 主包（python -m dro）
+│   ├── __init__.py
+│   ├── __main__.py              # CLI 入口（--host / --port）
+│   ├── core/                    # 核心层：编排 / LLM / 记忆 / 配置
+│   │   ├── graph.py             #   LangGraph 状态图 + TaskRunner
+│   │   ├── llm.py               #   LLM 客户端（同步/异步）
+│   │   ├── memory.py            #   四层记忆（SQLite 默认）
+│   │   ├── config.py            #   统一配置加载
+│   │   ├── prompts.py           #   提示词模板
+│   │   ├── schemas.py           #   ToolResult / Product / State 契约
+│   │   └── budget.py            #   预算上限解析
+│   ├── device/                  # 设备层：ADB / UI / 视觉
+│   │   ├── adb_client.py        #   ADB 原子操作封装
+│   │   ├── ui.py                #   uiautomator XML 解析
+│   │   └── vision.py            #   Qwen-VL 视觉服务
+│   ├── web/                     # Web 层：API + 页面
+│   │   ├── api.py               #   FastAPI 应用（路由）
+│   │   └── pages.py             #   内嵌管理页面 HTML
+│   ├── tools/                   # 工具层：12 个原子手机操作
+│   │   ├── base.py              #   register_tool / execute_tool
+│   │   ├── open_app / search_product / click_product / extract_info
+│   │   ├── go_back / screenshot / close_popup
+│   │   ├── gesture.py           #   swipe_up / down / left / right
+│   │   └── clipboard.py         #   paste_text（中文输入）
+│   └── data/                    # [运行时 · gitignored] checkpoints.db / memory.db
+├── tests/                       # 单元 / 回归 / 评估
+│   ├── test_graph.py / test_memory.py / test_tools.py
+│   ├── test_regression.py / eval_cases.py
+│   └── fixtures/
+├── docs/                        # 架构 / 评估 / 面试速记 / 需求文档
+├── trajectories/                # [运行时 · gitignored] 截图轨迹
+└── uploads/                     # [运行时 · gitignored] 上传图片
 ```
 
 ---
 
-## 3. v2 核心能力
+## 3. 核心能力
 
 ### 3.1 原子工具层（12 个工具）
 
@@ -145,7 +142,7 @@ dro/
 
 ### 3.4 Checkpoint 恢复
 
-- 默认用 SQLite（`v2/data/checkpoints.db`，`SqliteSaver`）保存任务状态，失败自动降级 `MemorySaver`
+- 默认用 SQLite（`dro/data/checkpoints.db`，`SqliteSaver`）保存任务状态，失败自动降级 `MemorySaver`
 - 同一个 `thread_id` 可 `resume` 从断点继续执行
 - 适合长流程比价、跨平台搜索、异常恢复等任务
 
@@ -211,9 +208,9 @@ ADB_BINARY=adb
 ### 4.4 启动服务
 
 ```bash
-python -m v2                 # http://localhost:8001
-python -m v2 --port 9000     # 自定义端口
-python -m v2 --host 127.0.0.1
+python -m dro                 # http://localhost:8001
+python -m dro --port 9000     # 自定义端口
+python -m dro --host 127.0.0.1
 ```
 
 ---
@@ -301,7 +298,7 @@ python -m unittest discover -s tests -v
 
 - 工具注册、执行、超时、异常兜底（`test_tools.py`）
 - 意图路由、计划、checkpoint、ReAct finish、需求澄清（`test_graph.py`）
-- 四层记忆读写、预算解析与标注（`test_memory.py` / `test_v2_regression.py`）
+- 四层记忆读写、预算解析与标注（`test_memory.py` / `test_regression.py`）
 
 ### 7.2 评估用例
 
@@ -317,7 +314,7 @@ python -m tests.eval_cases
 
 ### 已完成
 
-- `v2/` 独立流程：图编排（意图 → 规划 → ReAct → 结果）、12 个原子工具、四层记忆、API、测试
+- 分层架构：核心层（编排 / LLM / 记忆）、设备层（ADB / UI / 视觉）、Web 层（API / 页面）、工具层（12 个原子工具）
 - 任务控制台 `/` 与客服聊天 `/chat` 两个 Web UI
 - 预算解析与标注、需求澄清、弹窗自愈、checkpoint 恢复
 - 默认 SQLite 零外部依赖可启动
@@ -330,21 +327,4 @@ python -m tests.eval_cases
 
 ---
 
-## 9. 旧版说明
 
-旧版实现保留在：
-
-- `app.py`
-- `agent_service.py`
-- `templates/index.html`
-
-它们目前仅作为历史版本和回退参考，**不作为当前推荐启动路径**。
-
----
-
-## 10. 建议的后续工作
-
-1. 先用 `python -m v2` 跑通 API，打开 `/` 和 `/chat` 确认页面可用
-2. 再用模拟器 / 真机验证 `open_app`、`search_product`、`extract_info`、滑动工具
-3. 然后按 `tests/eval_cases.py` 跑评估并补 `docs/evaluation.md`
-4. 最后再考虑接入 Qdrant / PostgreSQL 作为增强存储，并在真机验证

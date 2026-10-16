@@ -1,5 +1,5 @@
 # Ignore runtime artifacts
-v2/data/
+dro/data/
 trajectories/
 uploads/
 __pycache__/

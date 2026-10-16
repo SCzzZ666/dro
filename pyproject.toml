@@ -1,0 +1,13 @@
+[project]
+name = "dro"
+version = "2.0.0"
+description = "Dro e-commerce AI agent (LangGraph + ADB tools)"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

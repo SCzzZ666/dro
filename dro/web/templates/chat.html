@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dro v2 · 客服助手</title>
+  <link rel="stylesheet" href="/static/base.css" />
+  <link rel="stylesheet" href="/static/chat.css" />
+  <script>
+    // 首屏前设置主题，避免暗色闪烁
+    document.documentElement.dataset.theme = localStorage.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    function toggleTheme() {
+      const t = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.dataset.theme = t;
+      localStorage.theme = t;
+    }
+  </script>
+</head>
+<body>
+  <!-- 会话侧栏 -->
+  <aside class="sidebar">
+    <div class="side-head">
+      <div class="logo">Dro</div>
+      <div><b>客服助手</b><br /><small>购物 · 比价 · 找相似</small></div>
+    </div>
+    <div class="side-body" id="sessionList">
+      <div class="empty-tip" style="padding:24px 10px;">加载会话…</div>
+    </div>
+    <div class="side-foot">
+      <span><span class="status-dot" id="healthDot"></span> <span id="healthText">检测中</span></span>
+      <a href="/" target="_blank" rel="noreferrer">控制台</a>
+    </div>
+  </aside>
+
+  <!-- 主聊天区 -->
+  <section class="main">
+    <header class="chat-head">
+      <div>
+        <div class="title" id="chatTitle">新的会话</div>
+        <div class="sub" id="chatSub">向助手描述你的购物需求</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="theme-toggle" onclick="toggleTheme()" title="切换主题">🌓</button>
+      <button class="btn" id="newChatBtn">＋ 新会话</button>
+      <button class="btn danger" id="stopBtn" disabled>停止</button>
+    </header>
+
+    <div class="messages" id="msgScroll">
+      <div class="inner" id="msgList">
+        <div class="empty-tip" id="welcome">
+          <div class="big">🛍️</div>
+          <div>你好，我是你的购物客服助手。<br/>可以帮你比价、找相似款、按预算推荐商品。</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="composer">
+      <div class="composer-inner">
+        <div class="attach-preview" id="attachPreview">
+          <img id="attachImg" alt="参考图" />
+          <span style="font-size:13px;color:var(--muted)" id="attachName"></span>
+          <span class="x" id="clearAttach" title="移除">✕ 移除</span>
+        </div>
+        <div class="input-row">
+          <textarea id="msgInput" rows="1" placeholder="说说你想买什么，例如：帮我找一个100以内的拼豆玩具…"></textarea>
+          <button class="icon-btn" id="imgBtn" title="上传参考图片（找相似）">📎</button>
+          <input type="file" id="fileInput" accept="image/*" style="display:none" />
+          <button class="btn primary" id="sendBtn" style="height:46px;border-radius:14px;">发送</button>
+        </div>
+        <div class="chips" id="chips">
+          <button class="chip">帮我比价蓝牙耳机，预算200以内</button>
+          <button class="chip">找一个100以内的拼豆玩具</button>
+          <button class="chip">推荐500元以内的机械键盘</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <script src="/static/chat.js" defer></script>
+</body>
+</html>

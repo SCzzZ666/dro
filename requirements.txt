@@ -2,17 +2,14 @@ fastapi==0.115.0
 uvicorn[standard]==0.32.0
 python-multipart==0.0.9
 httpx==0.27.0
-jinja2==3.1.4
 python-dotenv
-llama-index-llms-openai-like
 
-# ---- v2（工具化 + LangGraph 重构） ----
+# ---- dro（LangGraph 分层架构） ----
 langgraph>=1.0
 langgraph-checkpoint-sqlite>=3.0
 
-# ---- v2 长期偏好向量记忆（配置 QDRANT_URL 后启用；不装则 SQLite 兜底） ----
+# ---- 长期偏好向量记忆（配置 QDRANT_URL 后启用；不装则 SQLite 兜底） ----
 qdrant-client>=1.7.0
-# sqlalchemy>=2.0
 
-# ---- 手机驱动（旧版 agent_service.py 使用；v2 不依赖） ----
-# droidrun
+# ---- 视觉降采样（可选；缺失时自动回退原图） ----
+Pillow>=10.0

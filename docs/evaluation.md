@@ -5,11 +5,22 @@
 
 ## 自动化测试结果（已实测 · 无设备）
 
-- 单元/回归测试：`python -m unittest discover -s tests` → **37 通过，1 跳过**（跳过项：向量检索测试，因 `qdrant-client` 未安装）。
-- 覆盖范围：意图路由（chat 短路 / 比价跑计划 / 启发式兜底 / max_steps 上限）、checkpoint 恢复、工具注册 / 超时 / 异常兜底、四层记忆读写、预算解析与标注、澄清流程、ReAct finish、UI 解析、API 契约。
+- 单元/回归测试：`python -m unittest discover -s tests` → **46 通过，1 跳过**（跳过项：向量检索测试，因 `qdrant-client` 未安装）。
+- 覆盖范围：意图路由（chat 短路 / 比价跑计划 / 启发式兜底 / max_steps 上限）、checkpoint 恢复、工具注册 / 超时 / 异常兜底、四层记忆读写、预算解析与标注、澄清流程、ReAct finish（规则优先）、确定性评分 `rank_products`、代下单安全护栏、API 契约、指标记录。
 - 环境状态（2026-09-05 实测）：`adb devices` 无设备 → 下方 10 个端到端任务**待真机**；`DASHSCOPE_API_KEY` 已配置；`QDRANT_URL` 已配置但 `qdrant-client` 未安装 → 向量检索当前降级 SQLite。
 
-> ⚠️ 下方用例表需在连接真机/模拟器、安装并登录淘宝/京东后，按"每个任务 3 次"手动填写。**不要用未实测的数字冒充成功率。**
+## 指标自动采集（D8 可观测性）
+
+优化后新增 `/v2/metrics`（Prometheus 文本格式），任务成功率 / 平均步数 / LLM 调用数 / token 消耗 / 时延可自动统计，不再依赖「每个任务手动跑 3 次」手记：
+
+| 指标 | 说明 |
+| --- | --- |
+| `dro_task_total` / `dro_task_done` / `dro_task_failed` | 任务总数 / 成功 / 失败 |
+| `dro_task_steps` (summary) | 每任务执行步数（sum/count/max） |
+| `dro_llm_requests_total` / `dro_llm_tokens_total` | LLM 调用数 / token 消耗 |
+| `dro_llm_latency_ms` / `dro_tool_latency_ms` (summary) | LLM / 工具时延 |
+
+> ⚠️ 下方用例表仍需在连接真机/模拟器、安装并登录淘宝/京东后按「每个任务 3 次」填写成功率。**不要用未实测的数字冒充成功率。**
 
 ## 用例（定义见 `tests/eval_cases.py`）
 
@@ -45,7 +56,7 @@
 
 ## 已知的环境类失败分类（需求文档 Day 5）
 
-- 工具坐标不准 → 改用 UI 元素定位（`v2/ui.py` 已实现文本/资源 id 定位）
-- LLM 规划不合理 → 优化 `planner` prompt（`v2/prompts.py`）
+- 工具坐标不准 → 改用 UI 元素定位（`dro/device/ui.py` 已实现文本/资源 id 定位）
+- LLM 规划不合理 → 优化 `planner` prompt（`dro/core/prompts.py`）
 - 记忆未注入 → 检查 `memory.build_prompt` 到各节点的注入点
 - App 弹窗 → 加强弹窗检测（`close_popup` + `vision.detect_popup`）

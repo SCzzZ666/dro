@@ -1,6 +1,6 @@
 # Dro v2 架构说明
 
-本文档描述 `v2/` 目录的架构设计，对应需求文档"第 8-9 周：dro 电商助手深度重构"。
+本文档描述 `dro/` 分层架构设计，对应需求文档"第 8-9 周：dro 电商助手深度重构"。
 
 ## 1. 架构总览
 
@@ -20,7 +20,7 @@ planner_node ──► agent_node ◄──(还有步骤)──┐
 ```
 
 - **记忆系统在每一步注入**：`intent_node`（历史+偏好）、`planner_node`（记忆辅助规划）、`agent_node`（ReAct 观察）、`result_node`（写入本轮结果）。
-- **checkpointer**：默认 `SqliteSaver`（`v2/data/checkpoints.db`），thread_id = `{用户ID}_{时间戳}`；同一 thread_id 可 `resume_task` 从断点恢复。
+- **checkpointer**：默认 `SqliteSaver`（`dro/data/checkpoints.db`），thread_id = `{用户ID}_{时间戳}`；同一 thread_id 可 `resume_task` 从断点恢复。
 
 ## 2. 节点说明
 
@@ -35,7 +35,7 @@ planner_node ──► agent_node ◄──(还有步骤)──┐
 - intent == chat：不执行工具，直达 result_node 返回回应（含澄清选项 choices）。
 - agent_node：计划执行完或达到 `max_steps`（默认 15）→ result_node；否则继续循环。
 
-## 3. 工具化执行引擎（v2/tools/）
+## 3. 工具化执行引擎（dro/tools/）
 
 每个手机操作是独立 `AgentTool`，统一经过 `register_tool` 注册、`execute_tool` 调度（线程池 + 超时保护 + 异常兜底返回错误字符串）。
 
@@ -59,7 +59,7 @@ planner_node ──► agent_node ◄──(还有步骤)──┐
 | 会话摘要 | SQLite `summaries` 表（LLM 生成，截断兜底） | - |
 | 长期偏好 | SQLite `preferences` 表 | Qdrant（配置 `QDRANT_URL` 自动启用向量检索，DashScope embedding） |
 | 用户画像 | SQLite `profiles` 表 | PostgreSQL（配置 `POSTGRES_DSN` 自动同步） |
-| 任务 checkpoint | `v2/data/checkpoints.db`（SqliteSaver） | 保持 SQLite |
+| 任务 checkpoint | `dro/data/checkpoints.db`（SqliteSaver） | 保持 SQLite |
 
 设计原则：所有外部服务均为可选，未配置时主流程照常运行（SQLite 兜底），便于本地开发与面试演示。
 
@@ -68,32 +68,47 @@ planner_node ──► agent_node ◄──(还有步骤)──┐
 ## 5. 目录结构
 
 ```
-v2/
-├── __init__.py       # 版本 + Windows 编码兼容
-├── __main__.py       # python -m v2 入口（默认 0.0.0.0:8001）
-├── api.py            # FastAPI：/v2/tasks + /v2/tasks/{id} + /resume + /v2/tools
-├── config.py         # 统一配置（.env > 环境变量 > 默认值）
-├── graph.py          # LangGraph 状态图 + TaskRunner（同步图 + SqliteSaver）
-├── llm.py            # DashScope 兼容接口封装（同步/异步双入口）
-├── memory.py         # 四层记忆（MemoryManager）
-├── prompts.py        # 全部提示词模板集中管理
-├── schemas.py        # ToolResult / ToolCall / Task / AgentState
-├── adb_client.py     # ADB 原子操作封装（tap/swipe/screencap/dump_ui...）
-├── ui.py             # uiautomator dump XML 解析（元素定位）
-├── vision.py         # 视觉服务（商品信息提取 / 弹窗检测）
-├── tools/            # 7 个手机操作工具
-└── data/             # [自动生成] checkpoints.db / memory.db / tasks.db
+dro/                                   （repo 根）
+├── pyproject.toml                     # 项目元数据 + ruff/pytest 配置
+├── dro/                               # 主包 (python -m dro)
+│   ├── __init__.py                    #   Windows 编码兼容 + 版本号
+│   ├── __main__.py                    #   CLI 入口（默认 0.0.0.0:8001）
+│   ├── core/                          #   核心层
+│   │   ├── graph.py                   #     LangGraph 状态图 + TaskRunner
+│   │   ├── llm.py                     #     DashScope 兼容接口封装
+│   │   ├── memory.py                  #     四层记忆（MemoryManager）
+│   │   ├── config.py                  #     统一配置加载
+│   │   ├── prompts.py                 #     提示词模板
+│   │   ├── schemas.py                 #     ToolResult / Product / State
+│   │   └── budget.py                  #     预算上限解析
+│   ├── device/                        #   设备层
+│   │   ├── adb_client.py              #     ADB 原子操作封装
+│   │   ├── ui.py                      #     uiautomator XML 解析
+│   │   └── vision.py                  #     Qwen-VL 视觉服务
+│   ├── web/                           #   Web 层
+│   │   ├── api.py                      #     FastAPI 应用（路由）
+│   │   └── pages.py                    #     内嵌管理页面 HTML
+│   ├── tools/                         #   工具层：12 个原子工具
+│   │   ├── base.py                    #     register_tool / execute_tool
+│   │   ├── open_app / search_product / click_product / extract_info
+│   │   ├── go_back / screenshot / close_popup
+│   │   ├── gesture.py                 #     swipe_up/down/left/right
+│   │   └── clipboard.py              #     paste_text（中文输入）
+│   └── data/                          #   [auto] checkpoints.db / memory.db
+├── tests/                             # 单元测试
+├── docs/                              # 架构 / 评估 / 面试速记 / 需求文档
+├── trajectories/ / uploads/           # [运行时] 截图 / 上传文件
+└── requirements.txt
 ```
 
-## 6. 与旧版（app.py / agent_service.py）的区别
+## 6. 分层设计
 
-| 维度 | 旧版 | v2 |
+| 层 | 职责 | 关键模块 |
 | --- | --- | --- |
-| 执行方式 | LLM 生成 Python 代码本地执行 | 固定工具集，LLM 只做意图/规划/结果 |
-| 编排 | 单文件长 Prompt 一把跑 | LangGraph 状态图，可单步恢复 |
-| 记忆 | 内存字典 | 四层持久化记忆 |
-| 恢复 | 无 | SqliteSaver checkpoint + resume |
-| 可测性 | 低 | 每个工具可单测，图可 mock LLM 测试 |
+| core/ | 任务编排、LLM 调用、记忆管理、配置 | graph, llm, memory, config, prompts, schemas, budget |
+| device/ | 手机底层操作：ADB 指令、UI 解析、截图分析 | adb_client, ui, vision |
+| web/ | FastAPI 路由与页面渲染 | api, pages |
+| tools/ | 原子手机操作工具（12 个），统一注册/超时/错误兜底 | — |
 
 ## 7. 快速验证
 
@@ -102,8 +117,8 @@ v2/
 python -m unittest discover -s tests -v
 
 # 启动 v2 服务
-python -m v2                     # http://localhost:8001
-python -m v2 --port 9000
+python -m dro                     # http://localhost:8001
+python -m dro --port 9000
 
 # 创建任务
 curl -X POST http://localhost:8001/v2/tasks \

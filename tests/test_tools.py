@@ -10,8 +10,8 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from v2.schemas import ToolResult
-from v2.tools.base import REGISTRY, register_tool
+from dro.core.schemas import ToolResult
+from dro.tools.base import REGISTRY, register_tool
 
 
 class FakeAdb:
@@ -64,7 +64,7 @@ class _FakeResult:
 class ToolRegistryTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        from v2.tools import (  # noqa: F401 —— 触发注册
+        from dro.tools import (  # noqa: F401 —— 触发注册
             open_app, search_product, click_product, extract_info, go_back, screenshot, close_popup
         )
 
@@ -78,7 +78,7 @@ class ToolRegistryTest(unittest.TestCase):
             self.assertNotIn(" ", name)
 
     def test_execute_unknown_tool_returns_failure(self):
-        from v2.tools.base import execute_tool
+        from dro.tools.base import execute_tool
 
         result = execute_tool("no_such_tool", 5)
         self.assertFalse(result.ok)
@@ -89,7 +89,7 @@ class ToolRegistryTest(unittest.TestCase):
             time.sleep(2)
             return ToolResult(ok=True)
 
-        from v2.tools.base import execute_tool
+        from dro.tools.base import execute_tool
 
         result = execute_tool("_test_timeout", timeout=0.2)
         self.assertFalse(result.ok)
@@ -100,19 +100,44 @@ class ToolRegistryTest(unittest.TestCase):
         def crash():
             raise RuntimeError("boom")
 
-        from v2.tools.base import execute_tool
+        from dro.tools.base import execute_tool
 
         result = execute_tool("_test_crash", 5)
         self.assertFalse(result.ok)
         self.assertIn("boom", result.message)
 
     def test_go_back_offline_returns_failure(self):
-        from v2.tools.base import execute_tool
+        from dro.tools.base import execute_tool
 
-        with patch("v2.tools.go_back.adb", FakeAdb(online=False)):
+        with patch("dro.tools.go_back.adb", FakeAdb(online=False)):
             result = execute_tool("go_back", 5)
         self.assertFalse(result.ok)
         self.assertIn("未在线", result.message)
+
+
+class CheckoutSafetyTests(unittest.TestCase):
+    """代下单安全护栏：未授权拒绝、授权也不自动点支付。"""
+
+    def test_confirm_order_requires_authorization(self):
+        from dro.tools.checkout import confirm_order
+
+        with patch("dro.tools.checkout.adb", FakeAdb(online=True)):
+            r = confirm_order()
+        self.assertFalse(r.ok)
+        self.assertIn("拒绝", r.message)
+        self.assertTrue(r.data.get("payment_pending"))
+        self.assertFalse(r.data.get("authorized"))
+
+    def test_confirm_order_never_auto_pays(self):
+        from dro.tools.checkout import authorize_checkout, confirm_order
+
+        authorize_checkout("tok_test_1")
+        with patch("dro.tools.checkout.adb", FakeAdb(online=True)):
+            r = confirm_order(address="某地址", pay_auth="tok_test_1")
+        self.assertTrue(r.ok)
+        self.assertTrue(r.data.get("authorized"))
+        self.assertTrue(r.data.get("payment_pending"))
+        self.assertIn("不会自动点击", r.message)
 
 
 if __name__ == "__main__":
